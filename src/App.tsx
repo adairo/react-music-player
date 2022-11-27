@@ -11,6 +11,7 @@ import {
 import { HeartIcon } from "@heroicons/react/24/outline";
 import { PictureType, TagType } from "jsmediatags/types";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import uuid from "react-uuid";
 
 function getImageURLFromPicture(picture: PictureType | undefined) {
   if (!picture) return "";
@@ -29,7 +30,7 @@ type SelectedTags = Pick<TagType["tags"], typeof tagsToRead[number]>;
 
 type SongFile = Required<Omit<SelectedTags, "picture">> & {
   file: File;
-  id: number;
+  id: string;
   cover: string;
 };
 
@@ -51,7 +52,7 @@ async function getSongsFromFiles(fileList: FileList | null) {
               album: tags.album ?? "",
               cover: coverURL ?? "",
               file: file,
-              id: index,
+              id: uuid(),
             };
             resolve(result);
           },
@@ -76,14 +77,14 @@ type PlayerState = "playing" | "paused" | "idle";
 function App() {
   const filePickerRef = useRef<HTMLInputElement>(null);
   const [playlist, setPlaylist] = useState<SongFile[]>([]);
-  const [playingSong, setPlayingSong] = useState<number | null>(null);
+  const [playingSong, setPlayingSong] = useState<string | null>(null);
   const [playerState, setPlayerState] = useState<PlayerState>("idle");
   const [isExpanded, setIsExpanded] = useState(false);
 
   const audioRef = useRef<HTMLAudioElement>(null);
   const progressBarRef = useRef<HTMLSpanElement>(null);
 
-  const handlePlaySong = (songID: number) => {
+  const handlePlaySong = (songID: string) => {
     if (!audioRef.current) {
       throw new Error(
         "It seems like you forgot to add the ref to the audio element"
@@ -99,9 +100,6 @@ function App() {
     }
 
     setPlayingSong(songToPlay.id);
-    const mediaURL = URL.createObjectURL(songToPlay.file);
-    audioRef.current.src = mediaURL;
-    audioRef.current.onload = (e) => URL.revokeObjectURL(mediaURL);
   };
 
   const nextTrack = () => {
@@ -206,7 +204,7 @@ function App() {
 
     const newFileList = filePickerRef.current.files;
     const playList = await getSongsFromFiles(newFileList);
-    setPlaylist(playList);
+    setPlaylist((pfl) => [...pfl, ...playList]);
   };
 
   const currentSong = playlist.find((song) => song.id === playingSong);
@@ -326,7 +324,7 @@ function App() {
 
         <div className={`${!isExpanded ? "hidden" : ""} fill-red-300`}>
           <div className="bg-slate-200 max-w-sm w-full mx-auto aspect-square">
-            <img src={currentSong?.cover} />
+            <img src={currentSong?.cover} className="object-cover w-full" />
           </div>
           <div className="mx-auto mt-4 justify-center gap-8 max-w-sm grid grid-cols-[auto_auto_auto] auto-rows-[auto] grid-rows-[2rem]">
             <button onClick={() => previousTrack()}>
@@ -361,7 +359,7 @@ function App() {
 }
 type SongFilePreviewProps = {
   song: SongFile;
-  onPlay: (id: number) => void;
+  onPlay: (id: string) => void;
   isPlaying: boolean;
 };
 
