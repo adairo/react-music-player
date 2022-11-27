@@ -1,5 +1,8 @@
 import emptyListIllustration from "../public/empty_list.svg";
 import {
+  BackwardIcon,
+  ChevronDownIcon,
+  ForwardIcon,
   PauseIcon,
   PlayCircleIcon,
   PlayIcon,
@@ -101,6 +104,34 @@ function App() {
     audioRef.current.onload = (e) => URL.revokeObjectURL(mediaURL);
   };
 
+  const nextTrack = () => {
+    const currentIndex = playlist.findIndex((song) => song.id === playingSong);
+    if (currentIndex === -1) {
+      return console.warn("Couldn't find the current index");
+    }
+
+    if (currentIndex + 1 >= playlist.length - 1) {
+      return console.log("cannot play next song");
+    }
+
+    const newTrack = playlist[currentIndex + 1];
+    setPlayingSong(newTrack.id);
+  };
+
+  const previousTrack = () => {
+    const currentIndex = playlist.findIndex((song) => song.id === playingSong);
+    if (currentIndex === -1) {
+      return console.warn("Couldn't find the current index");
+    }
+
+    if (currentIndex <= 0) {
+      return console.log("cannot play previous song");
+    }
+
+    const newTrack = playlist[currentIndex - 1];
+    setPlayingSong(newTrack.id);
+  };
+
   // load new track
   useEffect(() => {
     if (!currentSong) return;
@@ -125,29 +156,14 @@ function App() {
       setPlayerState("idle");
     }
 
-    function playNextTrack() {
-      const currentIndex = playlist.findIndex(
-        (song) => song.id === playingSong
-      );
-      if (currentIndex === -1) {
-        return console.warn("Couldn't find the current index");
-      }
-
-      if (currentIndex + 1 >= playlist.length - 1) {
-        return console.log("cannot play next song");
-      }
-
-      const newTrack = playlist[currentIndex + 1];
-      setPlayingSong(newTrack.id);
-    }
-
     audio.addEventListener("loadstart", setIdle);
     audio.addEventListener("loadeddata", startPlaying);
-    audio.addEventListener("ended", playNextTrack);
+    audio.addEventListener("ended", nextTrack);
 
     return () => {
-      audio.removeEventListener("loadeddata", startPlaying);
       audio.removeEventListener("loadstart", setIdle);
+      audio.removeEventListener("loadeddata", startPlaying);
+      audio.removeEventListener("ended", nextTrack);
     };
   }, [playlist]);
 
@@ -216,7 +232,7 @@ function App() {
             type="file"
             name="audio-select"
             id="audio-select"
-            accept=".mp3"
+            accept="audio/*"
             onChange={handleInputFileChange}
             multiple
           />
@@ -247,33 +263,91 @@ function App() {
           )}
         </section>
       </div>
-      {/* Mini player */}
-      <div className="bg-sky-50 border-t-4 border-sky-200 relative ">
-        <span className="absolute -top-1 h-1 bg-sky-600" ref={progressBarRef} />
+      {/* Player screen */}
+      <div
+        className={`bg-sky-50 border-t-4 border-sky-200 relative transition-all ${
+          isExpanded ? "h-screen" : ""
+        }`}
+      >
         <audio className="sr-only" controls ref={audioRef} />
-        <div className="grid grid-cols-[auto_1fr] gap-2">
-          <div className="bg-slate-200 w-20 aspect-square">
+        <span className="absolute -top-1 h-1 bg-sky-600" ref={progressBarRef} />
+
+        {/* Mini player */}
+        <div
+          className={`grid gap-2 
+            ${isExpanded && "grid-cols-1"}
+            ${!isExpanded && "grid-cols-[auto_1fr]"}
+            `}
+        >
+          <div
+            className={`bg-slate-200 w-20 aspect-square ${
+              isExpanded ? "hidden" : ""
+            }`}
+            onClick={() => setIsExpanded((pe) => !pe)}
+          >
             <img src={currentSong?.cover} alt="" />
           </div>
           <div className="grid grid-cols-[1fr_auto] items-center">
-            <div>
-              <div className="text-lg font-bold">{currentSong?.title}</div>
-              <div>{currentSong?.artist}</div>
+            <div className="">
+              {!isExpanded && (
+                <>
+                  <div className="text-lg font-bold">{currentSong?.title}</div>
+                  <div>{currentSong?.artist}</div>
+                </>
+              )}
             </div>
             <div className=" px-4 h-full grid items-center">
-              {playerState === "playing" ? (
+              {playerState === "playing" && !isExpanded ? (
                 <button onClick={() => setPlayerState("paused")}>
                   <PauseIcon className="w-8 fill-slate-600 hover:fill-slate-500 active:fill-slate-400" />
                 </button>
               ) : null}
 
-              {playerState === "paused" ? (
+              {playerState === "paused" && !isExpanded ? (
                 <button onClick={() => setPlayerState("playing")}>
                   <PlayIcon className="w-8 fill-slate-600 hover:fill-slate-500 active:fill-slate-400" />
                 </button>
               ) : null}
+
+              {isExpanded && (
+                <button onClick={() => setIsExpanded(false)} className="mb-4">
+                  <ChevronDownIcon className="w-8" />
+                </button>
+              )}
             </div>
           </div>
+        </div>
+
+        <div className={`${!isExpanded ? "hidden" : ""} fill-red-300`}>
+          <div className="bg-slate-200 max-w-sm w-full mx-auto aspect-square">
+            <img src={currentSong?.cover} />
+          </div>
+          <div className="mx-auto mt-4 justify-center gap-8 max-w-sm grid grid-cols-[auto_auto_auto] auto-rows-[auto] grid-rows-[2rem]">
+            <button onClick={() => previousTrack()}>
+              <BackwardIcon className="w-8 fill-slate-600 hover:fill-slate-500 active:fill-slate-400" />
+            </button>
+            {playerState === "playing" ? (
+              <button onClick={() => setPlayerState("paused")}>
+                <PauseIcon className="w-8 fill-slate-600 hover:fill-slate-500 active:fill-slate-400" />
+              </button>
+            ) : null}
+
+            {playerState === "paused" ? (
+              <button onClick={() => setPlayerState("playing")}>
+                <PlayIcon className="w-8 fill-slate-600 hover:fill-slate-500 active:fill-slate-400" />
+              </button>
+            ) : null}
+
+            <button onClick={() => nextTrack()}>
+              <ForwardIcon className="w-8 fill-slate-600 hover:fill-slate-500 active:fill-slate-400" />
+            </button>
+          </div>
+          <h1 className="text-center font-bold text-lg mt-8">
+            {currentSong?.title}
+          </h1>
+          <h2 className="text-center mt-2">
+            {currentSong?.artist} - {currentSong?.album}
+          </h2>
         </div>
       </div>
     </main>
