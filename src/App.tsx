@@ -18,7 +18,7 @@ import {
   MusicalNoteIcon,
   PlayCircleIcon,
 } from "@heroicons/react/20/solid";
-import { TagType } from "jsmediatags/types";
+import { PictureType, TagType } from "jsmediatags/types";
 import { ReactNode, useEffect, useRef, useState } from "react";
 
 type SongList = typeof songs;
@@ -131,22 +131,47 @@ type SongFilePreviewProps = {
   onPlay: (title: string, file: File) => void;
 };
 
+function getImageURLFromPicture(picture: PictureType | undefined) {
+  if (!picture) return "";
+
+  const { data, format } = picture;
+  const base64 = data.reduce(
+    (url, current) => url + String.fromCharCode(current),
+    ""
+  );
+  const url = `data:${format};base64,${window.btoa(base64)}`;
+  return url;
+}
+
+const tagsToRead = ["title", "artist", "picture", "album"] as const;
+type SelectedTags = Pick<TagType["tags"], typeof tagsToRead[number]>;
+
 function SongFilePreview({ file, onPlay }: SongFilePreviewProps) {
-  const [metadata, setMetadata] = useState<TagType["tags"] | null>(null);
+  const [metadata, setMetadata] = useState<SelectedTags | null>(null);
+  const imgRef = useRef<HTMLImageElement>(null);
+
+  const handleUpdateImage = (url: string) => {
+    if (!imgRef.current) {
+      throw new Error("Don't forget to set ref to the img element");
+    }
+
+    console.log("🚀 ~ file: App.tsx ~ line 159 ~ handleUpdateImage ~ url", url);
+    imgRef.current.src = url;
+  };
 
   useEffect(() => {
     const jsmediatags = window.jsmediatags;
     new jsmediatags.Reader(file)
-      .setTagsToRead(["title", "artist", "picture", "album"])
+      .setTagsToRead(tagsToRead as unknown as string[])
       .read({
         onSuccess(data) {
-          setMetadata(data.tags);
+          const { title, artist, picture, album } = data.tags;
+          setMetadata({ title, artist, album });
+          const imageURL = getImageURLFromPicture(picture);
+          handleUpdateImage(imageURL);
         },
         onError(error) {
-          console.error(
-            "🚀 ~ file: App.tsx ~ line 118 ~ onError ~ error",
-            error
-          );
+          console.error(error);
         },
       });
   }, [file]);
@@ -154,9 +179,10 @@ function SongFilePreview({ file, onPlay }: SongFilePreviewProps) {
   return (
     <div className="grid grid-cols-[auto_1fr] gap-2">
       <div className="w-14 aspect-square bg-slate-300 relative grid place-items-center group">
+        <img ref={imgRef} />
         <PlayCircleIcon
           onClick={() => onPlay(metadata?.title ?? "Unknow", file)}
-          className="w-8 hidden group-hover:[display:block] absolute hover:scale-110 transition-transform origin-center active:scale-90 opacity-50 active:opacity-70"
+          className="w-full bg-slate-800 text-white hidden group-hover:[display:block] absolute transition-transform origin-center active:scale-90 opacity-70 active:opacity-70"
         />
       </div>
       <div>
