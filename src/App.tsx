@@ -63,22 +63,35 @@ function App() {
 }
 
 function MusicLibrary() {
-  const audioRef = useRef<HTMLInputElement>(null);
+  const filePickerRef = useRef<HTMLInputElement>(null);
+  const audioRef = useRef<HTMLAudioElement>(null);
   const [fileList, setFileList] = useState<File[]>([]);
-  console.log(
-    "🚀 ~ file: App.tsx ~ line 66 ~ MusicLibrary ~ fileList",
-    fileList
-  );
+  const [playingSong, setPlayingSong] = useState<File | null>(null);
+
+  const handlePlaySong = (title: string, file: File) => {
+    if (!audioRef.current) {
+      throw new Error(
+        "It seems like you forgot to add the ref to the audio element"
+      );
+    }
+
+    setPlayingSong(file);
+    console.log("Playing the song: ", title);
+
+    const mediaURL = URL.createObjectURL(file);
+    audioRef.current.src = mediaURL;
+    audioRef.current.onload = (e) => URL.revokeObjectURL(mediaURL);
+  };
 
   const handleInputFileChange = () => {
-    if (!audioRef.current) return;
+    if (!filePickerRef.current) return;
 
-    const newFileList = audioRef.current.files;
+    const newFileList = filePickerRef.current.files;
     if (newFileList?.length === 0) {
       return setFileList([]);
     }
 
-    setFileList(Array.from(audioRef.current.files ?? []));
+    setFileList(Array.from(filePickerRef.current.files ?? []));
   };
   return (
     <div className="">
@@ -90,7 +103,7 @@ function MusicLibrary() {
           <MagnifyingGlassIcon className="w-4" />
         </button> */}
         <input
-          ref={audioRef}
+          ref={filePickerRef}
           type="file"
           name="audio-select"
           id="audio-select"
@@ -101,14 +114,24 @@ function MusicLibrary() {
       </header>
       <section className="space-y-4 p-4  ">
         {fileList.map((file) => (
-          <SongFilePreview key={file.name} file={file} />
+          <SongFilePreview
+            onPlay={handlePlaySong}
+            key={file.name}
+            file={file}
+          />
         ))}
       </section>
+      <audio className="w-full" autoPlay controls ref={audioRef} />
     </div>
   );
 }
 
-function SongFilePreview({ file }: { file: File }) {
+type SongFilePreviewProps = {
+  file: File;
+  onPlay: (title: string, file: File) => void;
+};
+
+function SongFilePreview({ file, onPlay }: SongFilePreviewProps) {
   const [metadata, setMetadata] = useState<TagType["tags"] | null>(null);
 
   useEffect(() => {
@@ -131,7 +154,10 @@ function SongFilePreview({ file }: { file: File }) {
   return (
     <div className="grid grid-cols-[auto_1fr] gap-2">
       <div className="w-14 aspect-square bg-slate-300 relative grid place-items-center group">
-        <PlayCircleIcon className="w-8 hidden group-hover:[display:block] absolute hover:scale-110 transition-transform origin-center active:scale-90 opacity-50 active:opacity-70" />
+        <PlayCircleIcon
+          onClick={() => onPlay(metadata?.title ?? "Unknow", file)}
+          className="w-8 hidden group-hover:[display:block] absolute hover:scale-110 transition-transform origin-center active:scale-90 opacity-50 active:opacity-70"
+        />
       </div>
       <div>
         <div className="flex gap-2 items-center">
