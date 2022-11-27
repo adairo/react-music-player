@@ -7,7 +7,7 @@ import {
 } from "@heroicons/react/20/solid";
 import { HeartIcon } from "@heroicons/react/24/outline";
 import { PictureType, TagType } from "jsmediatags/types";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
 function getImageURLFromPicture(picture: PictureType | undefined) {
   if (!picture) return "";
@@ -63,14 +63,22 @@ async function getSongsFromFiles(fileList: FileList | null) {
   return playList;
 }
 
+function getPlayingPercentage(total: number, current: number): string {
+  const progress = (current * 100) / total;
+  return `${progress}%`;
+}
+
 type PlayerState = "playing" | "paused" | "idle";
 
 function App() {
   const filePickerRef = useRef<HTMLInputElement>(null);
-  const audioRef = useRef<HTMLAudioElement>(null);
   const [playlist, setPlaylist] = useState<SongFile[]>([]);
   const [playingSong, setPlayingSong] = useState<number | null>(null);
   const [playerState, setPlayerState] = useState<PlayerState>("idle");
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  const audioRef = useRef<HTMLAudioElement>(null);
+  const progressBarRef = useRef<HTMLSpanElement>(null);
 
   const handlePlaySong = (songID: number) => {
     if (!audioRef.current) {
@@ -79,18 +87,92 @@ function App() {
       );
     }
 
+    // The song is already being played
+    if (songID === playingSong) return;
+
     const songToPlay = playlist.find((song) => song.id === songID);
     if (!songToPlay) {
       throw new Error(`The song with ID:  ${songID} doesn't exist`);
     }
 
     setPlayingSong(songToPlay.id);
-    setPlayerState("playing");
     const mediaURL = URL.createObjectURL(songToPlay.file);
     audioRef.current.src = mediaURL;
     audioRef.current.onload = (e) => URL.revokeObjectURL(mediaURL);
   };
 
+  // load new track
+  useEffect(() => {
+    if (!currentSong) return;
+    if (!audioRef.current) return;
+    const audio = audioRef.current;
+
+    const mediaURL = URL.createObjectURL(currentSong.file);
+    audio.src = mediaURL;
+    audio.onload = () => URL.revokeObjectURL(mediaURL);
+  }, [playingSong]);
+
+  // initialize player
+  useEffect(() => {
+    if (!audioRef.current) return;
+    const audio = audioRef.current;
+
+    function startPlaying() {
+      setPlayerState("playing");
+    }
+
+    function setIdle() {
+      setPlayerState("idle");
+    }
+
+    function playNextTrack() {
+      const currentIndex = playlist.findIndex(
+        (song) => song.id === playingSong
+      );
+      if (currentIndex === -1) {
+        return console.warn("Couldn't find the current index");
+      }
+
+      if (currentIndex + 1 >= playlist.length - 1) {
+        return console.log("cannot play next song");
+      }
+
+      const newTrack = playlist[currentIndex + 1];
+      setPlayingSong(newTrack.id);
+    }
+
+    audio.addEventListener("loadstart", setIdle);
+    audio.addEventListener("loadeddata", startPlaying);
+    audio.addEventListener("ended", playNextTrack);
+
+    return () => {
+      audio.removeEventListener("loadeddata", startPlaying);
+      audio.removeEventListener("loadstart", setIdle);
+    };
+  }, [playlist]);
+
+  // moving the progress bar
+  useLayoutEffect(() => {
+    if (!audioRef.current) return;
+    if (!progressBarRef.current) return;
+
+    const audio = audioRef.current;
+    const bar = progressBarRef.current;
+
+    function updateProgressBar() {
+      audio.currentTime;
+      bar.style.setProperty(
+        "width",
+        getPlayingPercentage(audio.duration, audio.currentTime)
+      );
+    }
+
+    audioRef.current.addEventListener("timeupdate", updateProgressBar);
+    return () =>
+      audioRef.current?.removeEventListener("timeupdate", updateProgressBar);
+  }, [playingSong, playlist]);
+
+  // Pausing and playing
   useEffect(() => {
     if (!audioRef.current) return;
     if (playerState === "paused") {
@@ -99,7 +181,7 @@ function App() {
     }
 
     if (playerState === "playing") {
-      audioRef.current.play()
+      audioRef.current.play();
     }
   }, [playerState]);
 
@@ -166,9 +248,9 @@ function App() {
         </section>
       </div>
       {/* Mini player */}
-      <div className="bg-slate-100 shadow-[0_-2px_4px_rgba(0,0,0,0.25)] relative ">
-        <span className="absolute top-0 h-1 w-1 bg-slate-600" />
-        <audio className="sr-only" autoPlay controls ref={audioRef} />
+      <div className="bg-sky-50 border-t-4 border-sky-200 relative ">
+        <span className="absolute -top-1 h-1 bg-sky-600" ref={progressBarRef} />
+        <audio className="sr-only" controls ref={audioRef} />
         <div className="grid grid-cols-[auto_1fr] gap-2">
           <div className="bg-slate-200 w-20 aspect-square">
             <img src={currentSong?.cover} alt="" />
