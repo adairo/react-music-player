@@ -255,7 +255,7 @@ function App() {
               </p>
               <button
                 onClick={() => filePickerRef.current?.click()}
-                className="grid mt-6 mx-auto grid-cols-[auto_auto] gap-2 items-center bg-sky-500 px-3 py-2 rounded-lg  font-semibold text-white hover:bg-sky-600 active:bg-sky-700"
+                className="grid mt-6 mx-auto grid-cols-[auto_auto] gap-2 items-center bg-sky-500 px-6 py-2 rounded-lg  font-semibold text-white hover:bg-sky-600 active:bg-sky-700"
               >
                 <span>Agregar canciones</span>
               </button>
@@ -267,7 +267,7 @@ function App() {
       <div
         className={`bg-sky-50 border-t-4 border-sky-200 relative transition-all ${
           isExpanded ? "h-screen" : ""
-        }`}
+        } ${playlist.length === 0 ? "hidden" : ""}`}
       >
         <audio className="sr-only" controls ref={audioRef} />
         <span className="absolute -top-1 h-1 bg-sky-600" ref={progressBarRef} />
@@ -296,7 +296,7 @@ function App() {
                 </>
               )}
             </div>
-            <div className=" px-4 h-full grid items-center">
+            <div className=" px-4 h-full grid items-center grid-flow-col gap-3">
               {playerState === "playing" && !isExpanded ? (
                 <button onClick={() => setPlayerState("paused")}>
                   <PauseIcon className="w-8 fill-slate-600 hover:fill-slate-500 active:fill-slate-400" />
@@ -308,6 +308,12 @@ function App() {
                   <PlayIcon className="w-8 fill-slate-600 hover:fill-slate-500 active:fill-slate-400" />
                 </button>
               ) : null}
+
+              {!isExpanded && (
+                <button onClick={() => nextTrack()}>
+                  <ForwardIcon className="w-8 fill-slate-600 hover:fill-slate-500 active:fill-slate-400" />
+                </button>
+              )}
 
               {isExpanded && (
                 <button onClick={() => setIsExpanded(false)} className="mb-4">
@@ -380,9 +386,6 @@ function SongItem({ song, onPlay, isPlaying }: SongFilePreviewProps) {
         <p>
           {song.artist} - <span className="text-slate-500">{song.album}</span>
         </p>
-      </div>
-      <div className="hidden group-hover:block">
-        <HeartIcon className="w-6 stroke-slate-400 hover:fill-red-100 active:stroke-none active:fill-red-200 active:scale-110" />
       </div>
     </div>
   );
