@@ -1,8 +1,13 @@
 import emptyListIllustration from "../public/empty_list.svg";
-import { PlayCircleIcon, PlusIcon } from "@heroicons/react/20/solid";
+import {
+  PauseIcon,
+  PlayCircleIcon,
+  PlayIcon,
+  PlusIcon,
+} from "@heroicons/react/20/solid";
 import { HeartIcon } from "@heroicons/react/24/outline";
 import { PictureType, TagType } from "jsmediatags/types";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 function getImageURLFromPicture(picture: PictureType | undefined) {
   if (!picture) return "";
@@ -58,11 +63,14 @@ async function getSongsFromFiles(fileList: FileList | null) {
   return playList;
 }
 
+type PlayerState = "playing" | "paused" | "idle";
+
 function App() {
   const filePickerRef = useRef<HTMLInputElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
   const [playlist, setPlaylist] = useState<SongFile[]>([]);
   const [playingSong, setPlayingSong] = useState<number | null>(null);
+  const [playerState, setPlayerState] = useState<PlayerState>("idle");
 
   const handlePlaySong = (songID: number) => {
     if (!audioRef.current) {
@@ -77,10 +85,23 @@ function App() {
     }
 
     setPlayingSong(songToPlay.id);
+    setPlayerState("playing");
     const mediaURL = URL.createObjectURL(songToPlay.file);
     audioRef.current.src = mediaURL;
     audioRef.current.onload = (e) => URL.revokeObjectURL(mediaURL);
   };
+
+  useEffect(() => {
+    if (!audioRef.current) return;
+    if (playerState === "paused") {
+      audioRef.current.pause();
+      return;
+    }
+
+    if (playerState === "playing") {
+      audioRef.current.play()
+    }
+  }, [playerState]);
 
   const handleInputFileChange = async () => {
     if (!filePickerRef.current) return;
@@ -89,6 +110,8 @@ function App() {
     const playList = await getSongsFromFiles(newFileList);
     setPlaylist(playList);
   };
+
+  const currentSong = playlist.find((song) => song.id === playingSong);
   return (
     <main className="grid grid-rows-[1fr_auto] h-screen">
       <div className=" h-full overflow-y-scroll">
@@ -118,8 +141,9 @@ function App() {
         </header>
         <section className="space-y-4 p-4 mt-6 ">
           {playlist.map((song) => (
-            <SongFilePreview
+            <SongItem
               onPlay={handlePlaySong}
+              isPlaying={playingSong === song.id}
               key={song.id}
               song={song}
             />
@@ -141,13 +165,34 @@ function App() {
           )}
         </section>
       </div>
-      <div>
-        <audio
-          className="w-full rounded-full"
-          autoPlay
-          controls
-          ref={audioRef}
-        />
+      {/* Mini player */}
+      <div className="bg-slate-100 shadow-[0_-2px_4px_rgba(0,0,0,0.25)] relative ">
+        <span className="absolute top-0 h-1 w-1 bg-slate-600" />
+        <audio className="sr-only" autoPlay controls ref={audioRef} />
+        <div className="grid grid-cols-[auto_1fr] gap-2">
+          <div className="bg-slate-200 w-20 aspect-square">
+            <img src={currentSong?.cover} alt="" />
+          </div>
+          <div className="grid grid-cols-[1fr_auto] items-center">
+            <div>
+              <div className="text-lg font-bold">{currentSong?.title}</div>
+              <div>{currentSong?.artist}</div>
+            </div>
+            <div className=" px-4 h-full grid items-center">
+              {playerState === "playing" ? (
+                <button onClick={() => setPlayerState("paused")}>
+                  <PauseIcon className="w-8 fill-slate-600 hover:fill-slate-500 active:fill-slate-400" />
+                </button>
+              ) : null}
+
+              {playerState === "paused" ? (
+                <button onClick={() => setPlayerState("playing")}>
+                  <PlayIcon className="w-8 fill-slate-600 hover:fill-slate-500 active:fill-slate-400" />
+                </button>
+              ) : null}
+            </div>
+          </div>
+        </div>
       </div>
     </main>
   );
@@ -155,11 +200,16 @@ function App() {
 type SongFilePreviewProps = {
   song: SongFile;
   onPlay: (id: number) => void;
+  isPlaying: boolean;
 };
 
-function SongFilePreview({ song, onPlay }: SongFilePreviewProps) {
+function SongItem({ song, onPlay, isPlaying }: SongFilePreviewProps) {
   return (
-    <div className="grid grid-cols-[auto_1fr_auto] gap-2 items-center group">
+    <div
+      className={`grid grid-cols-[auto_1fr_auto] gap-2 items-center group ${
+        isPlaying ? "bg-sky-100" : ""
+      }`}
+    >
       <div className="w-14 aspect-square bg-slate-300 relative grid place-items-center group">
         <img src={song.cover} />
         <PlayCircleIcon
