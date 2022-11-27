@@ -12,10 +12,12 @@
     "@headlessui/react": "^1.7.4",
     "@headlessui/tailwindcss": "^0.1.1",
     "@heroicons/react": "^2.0.13",
+    "jsmediatags": "^3.9.7",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
   },
   "devDependencies": {
+    "@types/jsmediatags": "^3.9.3",
     "@types/react": "^18.0.24",
     "@types/react-dom": "^18.0.8",
     "@vitejs/plugin-react": "^2.2.0",

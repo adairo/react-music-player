@@ -1,4 +1,5 @@
 import { Tab } from "@headlessui/react";
+// import { read } from "jsmediatags";
 
 const songs = [
   { title: "Zanzibar", artist: "Billy Joel", duration: "4:34" },
@@ -17,7 +18,8 @@ import {
   MusicalNoteIcon,
   PlayCircleIcon,
 } from "@heroicons/react/20/solid";
-import { ReactNode, useRef, useState } from "react";
+import { TagType } from "jsmediatags/types";
+import { ReactNode, useEffect, useRef, useState } from "react";
 
 type SongList = typeof songs;
 type Song = SongList[number];
@@ -62,7 +64,7 @@ function App() {
 
 function MusicLibrary() {
   const audioRef = useRef<HTMLInputElement>(null);
-  const [fileList, setFileList] = useState<FileList | null>(null);
+  const [fileList, setFileList] = useState<File[]>([]);
   console.log(
     "🚀 ~ file: App.tsx ~ line 66 ~ MusicLibrary ~ fileList",
     fileList
@@ -73,10 +75,10 @@ function MusicLibrary() {
 
     const newFileList = audioRef.current.files;
     if (newFileList?.length === 0) {
-      return setFileList(null);
+      return setFileList([]);
     }
 
-    setFileList(audioRef.current.files);
+    setFileList(Array.from(audioRef.current.files ?? []));
   };
   return (
     <div className="">
@@ -98,8 +100,8 @@ function MusicLibrary() {
         />
       </header>
       <section className="space-y-4 p-4  ">
-        {Array.from(fileList ?? []).map((file) => (
-          <SongFilePreview file={file} />
+        {fileList.map((file) => (
+          <SongFilePreview key={file.name} file={file} />
         ))}
       </section>
     </div>
@@ -107,6 +109,25 @@ function MusicLibrary() {
 }
 
 function SongFilePreview({ file }: { file: File }) {
+  const [metadata, setMetadata] = useState<TagType["tags"] | null>(null);
+
+  useEffect(() => {
+    const jsmediatags = window.jsmediatags;
+    new jsmediatags.Reader(file)
+      .setTagsToRead(["title", "artist", "picture", "album"])
+      .read({
+        onSuccess(data) {
+          setMetadata(data.tags);
+        },
+        onError(error) {
+          console.error(
+            "🚀 ~ file: App.tsx ~ line 118 ~ onError ~ error",
+            error
+          );
+        },
+      });
+  }, [file]);
+
   return (
     <div className="grid grid-cols-[auto_1fr] gap-2">
       <div className="w-14 aspect-square bg-slate-300 relative grid place-items-center group">
@@ -114,12 +135,12 @@ function SongFilePreview({ file }: { file: File }) {
       </div>
       <div>
         <div className="flex gap-2 items-center">
-          <p className="font-bold text-lg text-slate-800">{file.name}</p>
-          <span className="text-slate-800 text-sm  rounded-full p-1">
-            {file.size.toFixed(3)}
-          </span>
+          <p className="font-bold text-lg text-slate-800">{metadata?.title}</p>
         </div>
-        <p>unknow</p>
+        <p>
+          {metadata?.artist} -{" "}
+          <span className="text-slate-500">{metadata?.album}</span>
+        </p>
       </div>
     </div>
   );
