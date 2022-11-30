@@ -1,0 +1,15 @@
+{
+  "background_color": "purple",
+  "description": "Reproductor de música local",
+  "display": "fullscreen",
+  "icons": [
+    {
+      "src": "public/vite.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml"
+    }
+  ],
+  "name": "Awesome fox pictures",
+  "short_name": "Foxes",
+  "start_url": "/pwa-examples/a2hs/index.html"
+}
