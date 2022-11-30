@@ -212,7 +212,14 @@ function App() {
     <main className="grid grid-rows-[1fr_auto] h-screen">
       <div className=" h-full overflow-y-scroll">
         <header className="flex gap-2 items-center justify-between p-4">
-          <h1 className="font-bold text-slate-400 text-lg">
+          <h1
+            className="font-bold text-slate-400 text-lg"
+            onClick={() =>
+              alert(
+                "Creado por Julián Adair Reyes Reyes, 201643331, para el curso de Dllo. de Aplicaciones Web 2022"
+              )
+            }
+          >
             Todas las canciones
           </h1>
 
