@@ -11,3 +11,7 @@ Una vez se cuenta con node, se debe clonar el código de este repositorio y posi
 - npm run dev
 
 El último comando inicia el servidor local e imprime en consola la dirección en la cual se puede visitar la aplicación.
+
+## Screenshots
+para ver la aplicación en funcionamiento, se puede acceder por medio de este enlace a un álbum en google fotos
+[https://photos.app.goo.gl/eLZc292Kvh9eKtNg6](Galería)
